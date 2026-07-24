@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMINISTRADOR
+  ADMINISTRATIVO
+}
+
+enum EstadoFactura {
+  PENDIENTE
+  FACTURADO
+  CANCELADO
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  nombre    String
+  role      Role     @default(ADMINISTRATIVO)
+  createdAt DateTime @default(now())
+
+  @@map("usuarios")
+}
+
+model Cliente {
+  id            Int        @id @default(autoincrement())
+  nombre        String
+  apellido      String
+  dni           String     @unique
+  obraSocial    String?    @map("obra_social")
+  telefono      String?
+  email         String?
+  observaciones String?
+  createdAt     DateTime   @default(now()) @map("created_at")
+  atenciones    Atencion[]
+
+  @@map("clientes")
+  @@index([nombre, apellido])
+}
+
+model Atencion {
+  id            Int      @id @default(autoincrement())
+  clienteId     Int      @map("cliente_id")
+  cliente       Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  fecha         DateTime
+  profesional   String
+  prestacion    String
+  importe       Float
+  observaciones String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  factura       Factura?
+
+  @@map("atenciones")
+  @@index([fecha])
+  @@index([profesional])
+}
+
+model Factura {
+  id               Int           @id @default(autoincrement())
+  atencionId       Int           @unique @map("atencion_id")
+  atencion         Atencion      @relation(fields: [atencionId], references: [id], onDelete: Cascade)
+  numeroFactura    String?       @map("numero_factura")
+  fechaFactura     DateTime?     @map("fecha_factura")
+  importeFacturado Float?        @map("importe_facturado")
+  estado           EstadoFactura @default(PENDIENTE)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  @@map("facturas")
+  @@index([estado])
+}
